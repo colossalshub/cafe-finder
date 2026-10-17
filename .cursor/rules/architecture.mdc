@@ -1,0 +1,15 @@
+---
+description: Keep café data, map rendering, and location state behind separate ports
+alwaysApply: true
+---
+
+# Architecture
+
+- Domain code must not import React, MapLibre, Supabase, or the browser geolocation API.
+- Read cafés through `CafeCatalog`. Read and write favorites, the bucket list, and visits through `PersonalStore`.
+- Keep three states independent: location fix, map viewport, and selected café id.
+- Nearby ranking uses the GPS fix and café coordinates. Panning the map does not change nearby results or the user marker.
+- Map tiles come from a style URL in the map adapter. Do not hardcode a tile host in the domain.
+- Ask for location only after an explicit action. Stop a foreground watch when leaving the map, hiding the page, or unmounting.
+- Visit records store a café id and times. They do not store coordinates.
+- Do not add a live places API, a scraped directory, or a Supabase client until that phase is the one in `docs/STATE.md`.

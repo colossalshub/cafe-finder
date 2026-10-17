@@ -1,0 +1,13 @@
+---
+description: Require evidence before claiming behavior, and check the active phase
+alwaysApply: true
+---
+
+# Testing and review
+
+- No test exists until a test file exists and has been run. Do not describe planned checks as results.
+- Before calling a phase done, match it to the acceptance criteria in `docs/MVP_SCOPE.md` and the checks in `docs/TEST_PLAN.md`.
+- UI work is verified in a browser: exercise the changed flow, including empty and denied states. A screenshot alone is not enough.
+- Pure distance, nearby, provenance, and selection logic should be tested without MapLibre or a live GPS.
+- Review diffs for invented café facts, hardcoded tile hosts, background location watches, and domain imports of React or MapLibre.
+- If a check was not run, say so.

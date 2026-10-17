@@ -1,0 +1,15 @@
+---
+description: Keep work inside the unnamed Makati café prototype scope
+alwaysApply: true
+---
+
+# Product scope
+
+- The product has no name. `cafe-finder-prototype` is a repository identifier only. Do not invent a brand or add a logo.
+- First coverage is Makati. English UI, `Asia/Manila`, prices in PHP.
+- Do not present unknown or unverified café information as fact. Missing hours, menus, prices, amenities, and photos are “Not listed”.
+- Show open or closed only from verified hours.
+- Location is opt-in and foreground-only. Do not add background tracking or a stored GPS track.
+- Do not implement a companion, game mechanics, AR, social features, reviews, reservations, or payments.
+- Stay inside the active phase in `docs/STATE.md`. Do not start the next phase without a separate instruction.
+- Do not claim a feature or a test exists unless the repository contains it.

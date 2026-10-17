@@ -1,0 +1,16 @@
+---
+description: Editorial UI without a brand, logo, or fake café photography
+globs: src/**/*.{tsx,css}
+alwaysApply: false
+---
+
+# Design system
+
+- Follow `docs/DESIGN_SYSTEM.md`. Do not add a product name, logo, or wordmark.
+- Use Fraunces for café names and page titles, and Source Sans 3 for interface text.
+- Use the paper, ink, and oxide tokens. Oxide is the only accent and stays rare.
+- The exploration screen is a map with a bottom sheet of results. The list must work when the map cannot.
+- Icon-only controls need accessible names. Tap targets are at least 44px. Keep visible focus.
+- Show a photo only when the record has a URL, alt text, attribution, and a license.
+- Empty and denied copy stays plain: “Not listed”, “Saved on this device only”, “Location is off. You can still search and browse the map.”
+- Do not add decorative coffee icons, a second accent, or stock images presented as the café.
