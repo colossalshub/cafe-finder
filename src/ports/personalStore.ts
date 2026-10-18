@@ -9,4 +9,5 @@ export type PersonalStore = {
   saveBucket(cafeId: string): Promise<void>;
   removeBucket(cafeId: string): Promise<void>;
   recordVisit(cafeId: string, visitedAt: string): Promise<void>;
+  removeVisit(visitId: string): Promise<void>;
 };

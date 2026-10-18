@@ -39,6 +39,9 @@ export function locationStatusCopy(state: LocationSessionState): string {
     case "unavailable":
       return "Your location could not be read.";
     case "stale":
+      if (state.fix && isCoarse(state.fix.accuracyMeters)) {
+        return `This location reading is no longer current. Approximate, within ${Math.round(state.fix.accuracyMeters)} meters.`;
+      }
       return "This location reading is no longer current.";
     case "granted":
       if (state.fix && isCoarse(state.fix.accuracyMeters)) {

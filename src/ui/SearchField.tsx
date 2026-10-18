@@ -11,13 +11,20 @@ export function SearchField({ value, onChange }: SearchFieldProps) {
       onSubmit={(event) => event.preventDefault()}
     >
       <label htmlFor="cafe-search">Search</label>
-      <input
-        id="cafe-search"
-        type="search"
-        placeholder="Search café names"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
+      <div className={value ? "search-control has-value" : "search-control"}>
+        <input
+          id="cafe-search"
+          type="search"
+          placeholder="Search café names"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        />
+        {value ? (
+          <button type="button" className="search-clear" aria-label="Clear search" onClick={() => onChange("")}>
+            Clear
+          </button>
+        ) : null}
+      </div>
     </form>
   );
 }

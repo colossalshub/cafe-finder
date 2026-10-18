@@ -192,4 +192,15 @@ describe("location session", () => {
       }),
     ).toBe("Approximate, within 250 meters.");
   });
+
+  it("keeps a stale coarse fix from sounding precise", () => {
+    expect(
+      locationStatusCopy({
+        status: "stale",
+        fix: fix(14.55, "2026-10-18T01:00:00.000Z", 250),
+      }),
+    ).toBe(
+      "This location reading is no longer current. Approximate, within 250 meters.",
+    );
+  });
 });

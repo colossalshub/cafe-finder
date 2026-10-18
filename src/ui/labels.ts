@@ -1,4 +1,4 @@
-import type { Amenity } from "../domain/types";
+import type { Amenity, Verification } from "../domain/types";
 
 export const AMENITY_LABELS: Record<Amenity, string> = {
   wifi: "Wi-Fi",
@@ -17,6 +17,12 @@ const php = new Intl.NumberFormat("en-PH", {
 
 export function formatPhp(amount: number): string {
   return php.format(amount);
+}
+
+export function placeLine(cafe: { neighborhood: string | null; verification: Verification }): string {
+  return [cafe.neighborhood ?? "Neighborhood not listed", cafe.verification === "fixture" ? "Fixture" : null]
+    .filter((part): part is string => part !== null)
+    .join(" · ");
 }
 
 const DAY_LABELS = {

@@ -154,7 +154,7 @@ type Visit = {
 };
 ```
 
-`Visit` has no latitude, longitude, accuracy, or path. `method` has one value so a later proximity confirmation would be a new value and a new product decision, not a silent extra column filled today.
+`Visit` has no latitude, longitude, accuracy, or path. `method` has one value so a later proximity confirmation would be a new value and a new product decision, not a silent extra column filled today. A visit can be removed by its id. Removal does not add coordinates.
 
 Favorites and bucket items are separate. A café may be in either, both, or neither.
 

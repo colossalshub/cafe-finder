@@ -156,5 +156,13 @@ export function createLocalPersonalStore(
       });
       write(storage, data);
     },
+    async removeVisit(visitId) {
+      if (!visitId) {
+        return;
+      }
+      const data = read(storage);
+      data.visits = data.visits.filter((visit) => visit.id !== visitId);
+      write(storage, data);
+    },
   };
 }

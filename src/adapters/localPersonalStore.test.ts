@@ -65,6 +65,25 @@ describe("local personal store", () => {
         method: "self_reported",
       },
     ]);
+    await store.removeVisit("visit-1");
+    expect(await store.listVisits()).toEqual([]);
+    const after = storage.getItem(PERSONAL_STORAGE_KEY) ?? "";
+    expect(after).not.toMatch(/latitude|longitude|accuracy|path/i);
+  });
+
+  it("removes one visit and leaves another for the same café", async () => {
+    const storage = memoryStorage();
+    let next = 0;
+    const store = createLocalPersonalStore(
+      storage,
+      () => new Date("2026-10-18T09:30:00.000Z"),
+      () => `visit-${++next}`,
+    );
+    await store.recordVisit("demo-low-table", "2026-10-18T09:00:00.000Z");
+    await store.recordVisit("demo-low-table", "2026-10-18T10:00:00.000Z");
+    await store.removeVisit("visit-1");
+    expect((await store.listVisits()).map((visit) => visit.id)).toEqual(["visit-2"]);
+    expect(await store.listFavorites()).toEqual([]);
   });
 
   it("returns empty collections after storage is cleared", async () => {

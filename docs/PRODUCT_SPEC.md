@@ -81,7 +81,9 @@ When a section has no sourced data, the page says it is not listed. It does not 
 
 Favorites and the bucket list are personal and private to the device in the prototype. They are stored locally. They can be lost if the browser storage is cleared. The interface must say that. Account sync is a later phase.
 
-A visit is a self-reported record that the person says they went. The prototype does not save the GPS coordinates of the visit. A later proximity hint may compare a current fix with the café and then discard the coordinates.
+The café list and the café page say when a place is saved, on the bucket list, or has a visit the person reported. The same records can narrow the list and the map. That label comes from those records. It is not a new fact about the café.
+
+A visit is a self-reported record that the person says they went. The person can remove that record. The prototype does not save the GPS coordinates of the visit. A later proximity hint may compare a current fix with the café and then discard the coordinates.
 
 ## What the web app can do well
 

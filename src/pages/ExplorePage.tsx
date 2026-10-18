@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useSearchParams } from "react-router-dom";
 import { MapCanvas, type CameraRequest, type MapUser } from "../adapters/MapCanvas";
 import { mapStyleUrl } from "../adapters/mapStyle";
 import { markerCafes } from "../application/markers";
@@ -16,13 +17,15 @@ import {
   selectCafe,
   type SelectionState,
 } from "../application/selection";
+import { inCollection, personalStatusForCafe, type PlaceCollection } from "../application/personalStatus";
 import { searchCafes } from "../application/searchCafes";
 import { displayValue } from "../domain/provenance";
 import type { Amenity } from "../domain/types";
 import { CafeCard } from "../ui/CafeCard";
 import { EmptyState } from "../ui/EmptyState";
-import { FilterBar } from "../ui/FilterBar";
+import { AmenityChips, FilterBar } from "../ui/FilterBar";
 import { useLocationSession } from "../ui/location-context";
+import { usePersonal } from "../ui/personal-context";
 import { SearchField } from "../ui/SearchField";
 import { useCafeList } from "../ui/useCafeCatalog";
 
@@ -33,9 +36,16 @@ export function ExplorePage() {
   const discoverRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedPlaces = searchParams.get("places");
   const [text, setText] = useState("");
   const [neighborhood, setNeighborhood] = useState<string | null>(null);
   const [amenity, setAmenity] = useState<Amenity | null>(null);
+  const [collection, setCollection] = useState<PlaceCollection | null>(
+    requestedPlaces === "saved" || requestedPlaces === "bucket" || requestedPlaces === "visited"
+      ? requestedPlaces
+      : null,
+  );
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [chromeBlock, setChromeBlock] = useState(0);
@@ -43,6 +53,7 @@ export function ExplorePage() {
   const [keyboardInset, setKeyboardInset] = useState(0);
   const [camera, setCamera] = useState<CameraRequest | null>(null);
   const location = useLocationSession();
+  const personal = usePersonal();
   const { setMapActive } = location;
   const [session, setSession] = useState<SelectionState>({
     selectedCafeId: null,
@@ -73,8 +84,12 @@ export function ExplorePage() {
     if (catalog.status !== "ready") {
       return [];
     }
-    return searchCafes(catalog.data, { text, neighborhood, amenity });
-  }, [catalog, text, neighborhood, amenity]);
+    const found = searchCafes(catalog.data, { text, neighborhood, amenity });
+    if (collection === null || personal.status !== "ready") {
+      return found;
+    }
+    return found.filter((cafe) => inCollection(cafe.id, collection, personal));
+  }, [amenity, catalog, collection, neighborhood, personal, text]);
 
   const markers = useMemo(() => markerCafes(results), [results]);
   const fix = activeFix(location.state);
@@ -98,13 +113,25 @@ export function ExplorePage() {
       approximate: isCoarse(fix.accuracyMeters),
     };
   }, [fix]);
-  const filterCount = (neighborhood ? 1 : 0) + (amenity ? 1 : 0);
+  const filterCount = (neighborhood ? 1 : 0) + (amenity ? 1 : 0) + (collection ? 1 : 0);
   const canAsk = location.state.status !== "granted" && location.state.status !== "requesting";
+  const coarseFix = fix !== null && isCoarse(fix.accuracyMeters);
 
   useEffect(() => {
     setMapActive(true);
     return () => setMapActive(false);
   }, [setMapActive]);
+
+  function chooseCollection(value: PlaceCollection | null) {
+    setCollection(value);
+    const next = new URLSearchParams(searchParams);
+    if (value) {
+      next.set("places", value);
+    } else {
+      next.delete("places");
+    }
+    setSearchParams(next, { replace: true });
+  }
 
   useEffect(() => {
     const screen = screenRef.current;
@@ -239,7 +266,9 @@ export function ExplorePage() {
       <div className="explore-column">
         <div className="discover" ref={discoverRef}>
           <header className="discover-intro">
+            <p className="section-label">Makati</p>
             <h1>Cafés</h1>
+            <p className="lede">Demonstration records for Makati. Not a directory of real places.</p>
           </header>
           <div className="discover-toolbar">
             <SearchField value={text} onChange={setText} />
@@ -264,7 +293,6 @@ export function ExplorePage() {
               </div>
             </div>
           </div>
-          <p className="lede">Demonstration records for Makati. Not a directory of real places.</p>
           <div id="cafe-filters" className="filter-panel" hidden={!filtersOpen}>
             {catalog.status === "ready" ? (
               <FilterBar
@@ -272,8 +300,10 @@ export function ExplorePage() {
                 amenities={amenities}
                 neighborhood={neighborhood}
                 amenity={amenity}
+                collection={collection}
                 onNeighborhood={setNeighborhood}
                 onAmenity={setAmenity}
+                onCollection={chooseCollection}
               />
             ) : null}
           </div>
@@ -299,6 +329,32 @@ export function ExplorePage() {
               </p>
             ) : null}
           </div>
+          <div className="location-row">
+            <p
+              id="location-status"
+              className={coarseFix ? "meta location-note is-approximate" : "meta location-note"}
+              data-location={location.state.status}
+              aria-live="polite"
+            >
+              {locationStatusCopy(location.state)}
+            </p>
+            {canAsk ? (
+              <button type="button" className="location-list-action" onClick={location.optIn}>
+                {locationActionLabel(location.state.status)}
+              </button>
+            ) : null}
+          </div>
+          {amenities.length > 0 ? (
+            <div className="amenity-shortcuts" role="group" aria-label="Listed amenities">
+              <p className="section-label">Listed amenities</p>
+              <AmenityChips
+                amenities={amenities}
+                amenity={amenity}
+                onAmenity={setAmenity}
+                includeAny={false}
+              />
+            </div>
+          ) : null}
           {catalog.status === "loading" ? <EmptyState>Loading cafés.</EmptyState> : null}
           {catalog.status === "error" ? (
             <EmptyState>The café list could not be loaded.</EmptyState>
@@ -307,7 +363,25 @@ export function ExplorePage() {
             <EmptyState>No cafés are in the catalog.</EmptyState>
           ) : null}
           {catalog.status === "ready" && catalog.data.length > 0 && results.length === 0 ? (
-            <EmptyState>No cafés match these filters.</EmptyState>
+            <EmptyState
+              action={
+                <button
+                  type="button"
+                  className="quiet-action"
+                  onClick={() => {
+                    setText("");
+                    setNeighborhood(null);
+                    setAmenity(null);
+                    chooseCollection(null);
+                    setFiltersOpen(false);
+                  }}
+                >
+                  Clear search and filters
+                </button>
+              }
+            >
+              No cafés match these filters.
+            </EmptyState>
           ) : null}
           {catalog.status === "ready" && results.length > 0 ? (
             <div className="card-list">
@@ -317,21 +391,12 @@ export function ExplorePage() {
                   cafe={item.cafe}
                   selected={session.selectedCafeId === item.cafe.id}
                   distanceMeters={item.distanceMeters}
+                  status={personal.status === "ready" ? personalStatusForCafe(item.cafe.id, personal) : null}
                   onSelect={choose}
                 />
               ))}
             </div>
           ) : null}
-          <div className="location-row">
-            <p id="location-status" className="meta location-note" aria-live="polite">
-              {locationStatusCopy(location.state)}
-            </p>
-            {canAsk ? (
-              <button type="button" className="location-list-action" onClick={location.optIn}>
-                {locationActionLabel(location.state.status)}
-              </button>
-            ) : null}
-          </div>
         </section>
       </div>
       {styleUrl ? (

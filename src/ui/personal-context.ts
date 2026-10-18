@@ -15,6 +15,7 @@ export type PersonalContextValue = PersonalData & {
   saveBucket: (cafeId: string) => void;
   removeBucket: (cafeId: string) => void;
   recordVisit: (cafeId: string, visitedAt: string) => void;
+  removeVisit: (visitId: string) => void;
 };
 
 export const PersonalContext = createContext<PersonalContextValue | null>(null);

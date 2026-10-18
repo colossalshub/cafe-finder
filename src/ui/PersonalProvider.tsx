@@ -136,6 +136,9 @@ export function PersonalProvider({ children }: { children: ReactNode }) {
   const recordVisit = useCallback((cafeId: string, visitedAt: string) => {
     run((store) => store.recordVisit(cafeId, visitedAt));
   }, [run]);
+  const removeVisit = useCallback((visitId: string) => {
+    run((store) => store.removeVisit(visitId));
+  }, [run]);
 
   const value = useMemo(
     () => ({
@@ -145,8 +148,9 @@ export function PersonalProvider({ children }: { children: ReactNode }) {
       saveBucket,
       removeBucket,
       recordVisit,
+      removeVisit,
     }),
-    [data, recordVisit, removeBucket, removeFavorite, saveBucket, saveFavorite],
+    [data, recordVisit, removeBucket, removeFavorite, removeVisit, saveBucket, saveFavorite],
   );
 
   return <PersonalContext.Provider value={value}>{children}</PersonalContext.Provider>;
