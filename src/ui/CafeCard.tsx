@@ -1,15 +1,16 @@
 import { Link } from "react-router-dom";
 import { displayValue } from "../domain/provenance";
 import type { Cafe } from "../domain/types";
-import { AMENITY_LABELS } from "./labels";
+import { AMENITY_LABELS, formatDistance } from "./labels";
 
 type CafeCardProps = {
   cafe: Cafe;
   selected: boolean;
+  distanceMeters?: number | null;
   onSelect: (cafeId: string | null) => void;
 };
 
-export function CafeCard({ cafe, selected, onSelect }: CafeCardProps) {
+export function CafeCard({ cafe, selected, distanceMeters = null, onSelect }: CafeCardProps) {
   const amenities = displayValue(cafe.amenities, "detail");
   const amenityLine =
     amenities && amenities.length > 0
@@ -31,6 +32,7 @@ export function CafeCard({ cafe, selected, onSelect }: CafeCardProps) {
             </Link>
           </h2>
           <p className="meta">{cafe.neighborhood ?? "Neighborhood not listed"}</p>
+          {distanceMeters !== null ? <p className="meta">{formatDistance(distanceMeters)} away</p> : null}
           {amenityLine ? <p className="meta">{amenityLine}</p> : null}
         </div>
       </div>

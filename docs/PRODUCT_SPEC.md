@@ -2,7 +2,7 @@
 
 Temporary identifier: `cafe-finder-prototype`. The product has no name. This document describes the experience, not a brand.
 
-Status: the list, search, filters, map, and detail pages exist for labeled demonstration cafés. The map needs `VITE_MAP_STYLE_URL` and does not ship a tile host. Opt-in location, saving, and visits described below are not implemented. See [STATE.md](STATE.md).
+Status: the list, search, filters, map, detail pages, opt-in location, on-device favorites, bucket list, and manual visits exist for labeled demonstration cafés. The map needs `VITE_MAP_STYLE_URL` and does not ship a tile host. Accounts and Supabase are not implemented. See [STATE.md](STATE.md).
 
 ## Purpose
 

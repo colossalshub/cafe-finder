@@ -1,15 +1,23 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { activeFix, isCoarse } from "../application/locationSession";
+import { distanceMeters } from "../domain/distance";
 import { canShowSourced, displayValue } from "../domain/provenance";
 import { openStatus } from "../domain/openStatus";
 import { DetailSection } from "../ui/DetailSection";
 import { EmptyState } from "../ui/EmptyState";
-import { AMENITY_LABELS, dayLabel, formatPhp, formatRetrieved } from "../ui/labels";
+import { AMENITY_LABELS, dayLabel, formatDistance, formatPhp, formatRetrieved } from "../ui/labels";
+import { useLocationSession } from "../ui/location-context";
+import { usePersonal } from "../ui/personal-context";
 import { VerificationNote } from "../ui/VerificationNote";
 import { useCafe } from "../ui/useCafeCatalog";
 
 export function CafeDetailPage() {
   const { id } = useParams();
   const catalog = useCafe(id);
+  const personal = usePersonal();
+  const locationSession = useLocationSession();
+  const [visitNote, setVisitNote] = useState<{ cafeId: string; text: string } | null>(null);
   const cafe = catalog.status === "ready" ? catalog.data : null;
   const address = cafe ? displayValue(cafe.address, "detail") : null;
   const hours = cafe ? displayValue(cafe.hours, "detail") : null;
@@ -29,6 +37,13 @@ export function CafeDetailPage() {
     : [];
   const status = cafe ? openStatus(cafe.hours, new Date()) : null;
   const source = cafe?.sources[0];
+  const fix = activeFix(locationSession.state);
+  const meters = fix && location ? distanceMeters(fix, location) : null;
+  const approximate = fix ? isCoarse(fix.accuracyMeters) : false;
+  const saved = cafe ? personal.favorites.some((item) => item.cafeId === cafe.id) : false;
+  const onBucket = cafe ? personal.bucket.some((item) => item.cafeId === cafe.id) : false;
+  const personalReady = personal.status === "ready";
+  const visibleVisitNote = visitNote && visitNote.cafeId === id ? visitNote.text : null;
 
   return (
     <article className="detail">
@@ -106,23 +121,74 @@ export function CafeDetailPage() {
               <p>
                 {location.latitude.toFixed(3)}, {location.longitude.toFixed(3)}.
                 Demonstration coordinates.
+                {meters !== null ? (
+                  <>
+                    {" "}
+                    {approximate
+                      ? `About ${formatDistance(meters)} from your location.`
+                      : `${formatDistance(meters)} from your location.`}
+                  </>
+                ) : null}
               </p>
             ) : null}
           </DetailSection>
           <section className="section actions">
             <h2>Personal</h2>
             <div className="action-row">
-              <button type="button" className="action" disabled>
-                Save
+              <button
+                type="button"
+                className="action"
+                aria-pressed={saved}
+                disabled={!personalReady}
+                onClick={() => {
+                  if (!cafe) {
+                    return;
+                  }
+                  if (saved) {
+                    personal.removeFavorite(cafe.id);
+                  } else {
+                    personal.saveFavorite(cafe.id);
+                  }
+                }}
+              >
+                {saved ? "Saved" : "Save"}
               </button>
-              <button type="button" className="action" disabled>
-                Add to bucket list
+              <button
+                type="button"
+                className="action"
+                aria-pressed={onBucket}
+                disabled={!personalReady}
+                onClick={() => {
+                  if (!cafe) {
+                    return;
+                  }
+                  if (onBucket) {
+                    personal.removeBucket(cafe.id);
+                  } else {
+                    personal.saveBucket(cafe.id);
+                  }
+                }}
+              >
+                {onBucket ? "Remove from bucket list" : "Add to bucket list"}
               </button>
-              <button type="button" className="action" disabled>
+              <button
+                type="button"
+                className="action"
+                disabled={!personalReady}
+                onClick={() => {
+                  if (!cafe) {
+                    return;
+                  }
+                  personal.recordVisit(cafe.id, new Date().toISOString());
+                  setVisitNote({ cafeId: cafe.id, text: "Visit recorded." });
+                }}
+              >
                 Record a visit
               </button>
             </div>
-            <p className="meta">Not yet implemented.</p>
+            <p className="meta">Saved on this device only.</p>
+            {visibleVisitNote ? <p className="meta">{visibleVisitNote}</p> : null}
+            {personal.message ? <p className="meta">{personal.message}</p> : null}
           </section>
           {source ? (
             <p className="meta source-line">

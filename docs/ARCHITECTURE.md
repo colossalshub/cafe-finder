@@ -1,6 +1,6 @@
 # Architecture
 
-Temporary identifier: `cafe-finder-prototype`. This document is the target architecture. The stack table marks what exists. Geolocation, personal storage, and Supabase are not implemented. Phase limits are in [STATE.md](STATE.md).
+Temporary identifier: `cafe-finder-prototype`. This document is the target architecture. The stack table marks what exists. Supabase is not implemented. Phase limits are in [STATE.md](STATE.md).
 
 ## Stack
 
@@ -10,7 +10,7 @@ Temporary identifier: `cafe-finder-prototype`. This document is the target archi
 | Map renderer | MapLibre GL JS (BSD-3-Clause) | Installed in the map adapter. |
 | Map tiles | Style URL from `VITE_MAP_STYLE_URL` | No provider is committed. A missing URL shows a configuration error. |
 | Café data | `CafeCatalog` port; fixtures first | Labeled fixture catalog in `src/` |
-| Personal data | `PersonalStore` port; `localStorage` first | Not implemented |
+| Personal data | `PersonalStore` port; `localStorage` first | `localStorage` adapter in `src/adapters/localPersonalStore.ts` |
 | Remote data | Supabase Postgres with PostGIS | Intended, no project |
 | Server rendering | Deferred | Shareable routes still exist |
 

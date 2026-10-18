@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { MapCanvas, type CameraRequest, type MapUser } from "../adapters/MapCanvas";
 import { mapStyleUrl } from "../adapters/mapStyle";
-import { MapCanvas } from "../adapters/MapCanvas";
 import { markerCafes } from "../application/markers";
+import { NEARBY_RADIUS_METERS, rankCafes } from "../application/nearby";
+import {
+  activeFix,
+  isCoarse,
+  locationActionLabel,
+  locationStatusCopy,
+} from "../application/locationSession";
 import {
   clearSelection,
   makatiViewport,
@@ -15,6 +22,7 @@ import type { Amenity } from "../domain/types";
 import { CafeCard } from "../ui/CafeCard";
 import { EmptyState } from "../ui/EmptyState";
 import { FilterBar } from "../ui/FilterBar";
+import { useLocationSession } from "../ui/location-context";
 import { SearchField } from "../ui/SearchField";
 import { useCafeList } from "../ui/useCafeCatalog";
 
@@ -33,6 +41,9 @@ export function ExplorePage() {
   const [chromeBlock, setChromeBlock] = useState(0);
   const [sheetBlock, setSheetBlock] = useState(0);
   const [keyboardInset, setKeyboardInset] = useState(0);
+  const [camera, setCamera] = useState<CameraRequest | null>(null);
+  const location = useLocationSession();
+  const { setMapActive } = location;
   const [session, setSession] = useState<SelectionState>({
     selectedCafeId: null,
     viewport: makatiViewport,
@@ -66,7 +77,34 @@ export function ExplorePage() {
   }, [catalog, text, neighborhood, amenity]);
 
   const markers = useMemo(() => markerCafes(results), [results]);
+  const fix = activeFix(location.state);
+  const ranked = useMemo(
+    () =>
+      rankCafes(
+        results,
+        fix ? { latitude: fix.latitude, longitude: fix.longitude } : null,
+        NEARBY_RADIUS_METERS,
+      ),
+    [fix, results],
+  );
+  const user = useMemo<MapUser | null>(() => {
+    if (!fix) {
+      return null;
+    }
+    return {
+      latitude: fix.latitude,
+      longitude: fix.longitude,
+      accuracyMeters: fix.accuracyMeters,
+      approximate: isCoarse(fix.accuracyMeters),
+    };
+  }, [fix]);
   const filterCount = (neighborhood ? 1 : 0) + (amenity ? 1 : 0);
+  const canAsk = location.state.status !== "granted" && location.state.status !== "requesting";
+
+  useEffect(() => {
+    setMapActive(true);
+    return () => setMapActive(false);
+  }, [setMapActive]);
 
   useEffect(() => {
     const screen = screenRef.current;
@@ -146,6 +184,45 @@ export function ExplorePage() {
     setSheetExpanded(expanded);
     sheetRef.current?.scrollTo({ top: 0 });
   }
+
+  function recenter() {
+    if (!fix) {
+      return;
+    }
+    setSession((current) =>
+      moveViewport(current, {
+        longitude: fix.longitude,
+        latitude: fix.latitude,
+        zoom: current.viewport.zoom,
+      }),
+    );
+    setCamera((current) => ({
+      token: (current?.token ?? 0) + 1,
+      longitude: fix.longitude,
+      latitude: fix.latitude,
+    }));
+  }
+
+  const mapControls = (
+    <div className="map-controls">
+      <button
+        type="button"
+        aria-pressed={location.state.status === "granted" || location.state.status === "stale"}
+        aria-describedby="location-status"
+        disabled={location.state.status === "requesting"}
+        onClick={() => {
+          if (location.state.status !== "granted") {
+            location.optIn();
+          }
+        }}
+      >
+        {locationActionLabel(location.state.status)}
+      </button>
+      <button type="button" onClick={recenter} disabled={fix === null} aria-describedby="location-status">
+        Recenter
+      </button>
+    </div>
+  );
 
   return (
     <div
@@ -234,17 +311,27 @@ export function ExplorePage() {
           ) : null}
           {catalog.status === "ready" && results.length > 0 ? (
             <div className="card-list">
-              {results.map((cafe) => (
+              {ranked.map((item) => (
                 <CafeCard
-                  key={cafe.id}
-                  cafe={cafe}
-                  selected={session.selectedCafeId === cafe.id}
+                  key={item.cafe.id}
+                  cafe={item.cafe}
+                  selected={session.selectedCafeId === item.cafe.id}
+                  distanceMeters={item.distanceMeters}
                   onSelect={choose}
                 />
               ))}
             </div>
           ) : null}
-          <p className="meta location-note">Use your location to see what is nearby.</p>
+          <div className="location-row">
+            <p id="location-status" className="meta location-note" aria-live="polite">
+              {locationStatusCopy(location.state)}
+            </p>
+            {canAsk ? (
+              <button type="button" className="location-list-action" onClick={location.optIn}>
+                {locationActionLabel(location.state.status)}
+              </button>
+            ) : null}
+          </div>
         </section>
       </div>
       {styleUrl ? (
@@ -253,15 +340,20 @@ export function ExplorePage() {
           markers={markers}
           selectedCafeId={session.selectedCafeId}
           viewport={session.viewport}
+          user={user}
+          camera={camera}
           onSelect={choose}
           onViewport={(viewport) => setSession((current) => moveViewport(current, viewport))}
-        />
+        >
+          {mapControls}
+        </MapCanvas>
       ) : (
         <div className="map-panel">
           <div className="map-pending" role="status">
             <p className="section-label">Map</p>
             <p>The map style is not configured.</p>
           </div>
+          {mapControls}
         </div>
       )}
     </div>

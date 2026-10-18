@@ -41,3 +41,26 @@ export function formatRetrieved(iso: string): string {
     year: "numeric",
   }).format(new Date(iso));
 }
+
+export function formatDistance(meters: number): string {
+  if (!Number.isFinite(meters) || meters < 0) {
+    return "";
+  }
+  if (meters < 1000) {
+    return `${Math.round(meters)} m`;
+  }
+  const kilometers = meters / 1000;
+  return `${kilometers.toFixed(kilometers >= 10 ? 0 : 1)} km`;
+}
+
+export function formatVisitTime(iso: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Manila",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(iso));
+}

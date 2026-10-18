@@ -61,7 +61,7 @@ Safe areas and the home indicator stay clear of the sheet controls. Tap targets 
 
 ## Components to build later
 
-These names are for implementation phases. They do not exist yet.
+These names are the implementation vocabulary. The exploration screen now includes them.
 
 - `AppBar` — task title only, no logo
 - `SearchField`

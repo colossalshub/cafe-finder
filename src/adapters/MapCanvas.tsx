@@ -1,28 +1,79 @@
-import { useEffect, useRef, useState } from "react";
-import { AttributionControl, Map, Marker, setWorkerUrl } from "maplibre-gl";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AttributionControl, GeoJSONSource, Map, Marker, setWorkerUrl } from "maplibre-gl";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { CafeMarker } from "../application/markers";
 import type { Viewport } from "../application/selection";
+import { accuracyRing } from "../domain/distance";
 
 setWorkerUrl(workerUrl);
+
+export type MapUser = {
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number;
+  approximate: boolean;
+};
+
+export type CameraRequest = {
+  token: number;
+  longitude: number;
+  latitude: number;
+};
 
 type MapCanvasProps = {
   styleUrl: string;
   markers: CafeMarker[];
   selectedCafeId: string | null;
   viewport: Viewport;
+  user: MapUser | null;
+  camera: CameraRequest | null;
   onSelect: (cafeId: string) => void;
   onViewport: (viewport: Viewport) => void;
+  children?: ReactNode;
 };
+
+function whenStyleReady(map: Map, sync: () => void) {
+  if (map.isStyleLoaded()) {
+    sync();
+    return;
+  }
+  map.once("load", sync);
+}
+
+function accuracyData(user: MapUser | null) {
+  if (!user?.approximate || user.accuracyMeters <= 0) {
+    return { type: "FeatureCollection" as const, features: [] };
+  }
+  const ring = accuracyRing(
+    { latitude: user.latitude, longitude: user.longitude },
+    user.accuracyMeters,
+  );
+  return {
+    type: "FeatureCollection" as const,
+    features: [
+      {
+        type: "Feature" as const,
+        properties: {},
+        geometry: {
+          type: "Polygon" as const,
+          coordinates: [ring.map((point) => [point.longitude, point.latitude])],
+        },
+      },
+    ],
+  };
+}
 
 export function MapCanvas({
   styleUrl,
   markers,
   selectedCafeId,
   viewport,
+  user,
+  camera,
   onSelect,
   onViewport,
+  children,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -133,17 +184,83 @@ export function MapCanvas({
           .addTo(map);
       });
     };
-    if (map.loaded()) {
-      sync();
-    } else {
-      map.once("load", sync);
-    }
+    whenStyleReady(map, sync);
     return () => {
       map.off("load", sync);
       markerHandles.current.forEach((marker) => marker.remove());
       markerHandles.current = [];
     };
   }, [markers, selectedCafeId, styleUrl]);
+
+  const userHandle = useRef<Marker | null>(null);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+    const sync = () => {
+      userHandle.current?.remove();
+      userHandle.current = null;
+      if (!user) {
+        return;
+      }
+      const mark = document.createElement("div");
+      mark.className = user.approximate ? "user-marker is-approximate" : "user-marker";
+      mark.setAttribute("role", "img");
+      mark.setAttribute("aria-label", user.approximate ? "Your approximate location" : "Your location");
+      const dot = document.createElement("span");
+      mark.append(dot);
+      userHandle.current = new Marker({ element: mark, anchor: "center" })
+        .setLngLat([user.longitude, user.latitude])
+        .addTo(map);
+    };
+    whenStyleReady(map, sync);
+    return () => {
+      map.off("load", sync);
+      userHandle.current?.remove();
+      userHandle.current = null;
+    };
+  }, [styleUrl, user]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+    const data = accuracyData(user);
+    const apply = () => {
+      const existing = map.getSource("user-accuracy");
+      if (existing instanceof GeoJSONSource) {
+        existing.setData(data);
+        return;
+      }
+      const ink = getComputedStyle(document.documentElement).getPropertyValue("--ink").trim();
+      map.addSource("user-accuracy", { type: "geojson", data });
+      map.addLayer({
+        id: "user-accuracy-fill",
+        type: "fill",
+        source: "user-accuracy",
+        paint: {
+          "fill-color": ink || "#1c1917",
+          "fill-opacity": 0.12,
+        },
+      });
+      map.addLayer({
+        id: "user-accuracy-line",
+        type: "line",
+        source: "user-accuracy",
+        paint: {
+          "line-color": ink || "#1c1917",
+          "line-width": 1.5,
+        },
+      });
+    };
+    whenStyleReady(map, apply);
+    return () => {
+      map.off("load", apply);
+    };
+  }, [styleUrl, user]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -163,15 +280,31 @@ export function MapCanvas({
         map.easeTo({ center, duration: 200 });
       }
     };
-    if (map.loaded()) {
-      move();
-    } else {
-      map.once("load", move);
-    }
+    whenStyleReady(map, move);
     return () => {
       map.off("load", move);
     };
   }, [markers, selectedCafeId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !camera || camera.token === 0) {
+      return;
+    }
+    const center: [number, number] = [camera.longitude, camera.latitude];
+    const move = () => {
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reduced) {
+        map.jumpTo({ center });
+      } else {
+        map.easeTo({ center, duration: 200 });
+      }
+    };
+    whenStyleReady(map, move);
+    return () => {
+      map.off("load", move);
+    };
+  }, [camera]);
 
   return (
     <div className="map-panel" ref={panelRef}>
@@ -183,6 +316,7 @@ export function MapCanvas({
           The map style could not be loaded.
         </p>
       ) : null}
+      {children}
     </div>
   );
 }

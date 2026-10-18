@@ -1,6 +1,6 @@
 # MVP scope
 
-Temporary identifier: `cafe-finder-prototype`. Current progress is in [STATE.md](STATE.md): Phase 3 is complete. Phases 4–7 below are not started.
+Temporary identifier: `cafe-finder-prototype`. Current progress is in [STATE.md](STATE.md): Phases 4–6 are complete. Phase 7 is blocked on credentials.
 
 Each phase is small enough to implement and verify on its own. A phase is done only when its acceptance criteria are met with evidence. Do not start the next phase without a separate instruction.
 

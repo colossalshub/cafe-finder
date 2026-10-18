@@ -85,3 +85,28 @@ export type Cafe = {
   photos: Photo[];
   sources: Source[];
 };
+
+export type Favorite = {
+  cafeId: string;
+  savedAt: string;
+};
+
+export type BucketItem = {
+  cafeId: string;
+  addedAt: string;
+};
+
+export type Visit = {
+  id: string;
+  cafeId: string;
+  visitedAt: string;
+  recordedAt: string;
+  method: "self_reported";
+};
+
+export type LocationFix = {
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number;
+  at: string;
+};
